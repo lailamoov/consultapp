@@ -113,6 +113,7 @@ export const services: Service[] = [
     timingKey: 'filler',
     hasSeparatePricingQuantity: true,
     pricingQuantityLabel: 'syringes',
+    hideSessionQuantity: true,
     pricing: { priceType: 'perUnit', individualPrice: 650, unitLabel: 'syringe', sourceLabel: '$650/syringe — no package pricing' },
     protocol: {
       standardQuantity: 1,
@@ -132,6 +133,7 @@ export const services: Service[] = [
     timingKey: 'filler',
     hasSeparatePricingQuantity: true,
     pricingQuantityLabel: 'syringes',
+    hideSessionQuantity: true,
     pricing: { priceType: 'perUnit', individualPrice: 650, unitLabel: 'syringe', sourceLabel: '$650/syringe — no package pricing' },
     protocol: {
       standardQuantity: 1,
@@ -151,6 +153,7 @@ export const services: Service[] = [
     timingKey: 'filler',
     hasSeparatePricingQuantity: true,
     pricingQuantityLabel: 'syringes',
+    hideSessionQuantity: true,
     pricing: { priceType: 'perUnit', individualPrice: 650, unitLabel: 'syringe', sourceLabel: '$650/syringe — no package pricing' },
     protocol: {
       standardQuantity: 1,

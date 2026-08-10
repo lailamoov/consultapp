@@ -83,15 +83,17 @@ export function ServiceCard({ service }: { service: Service }) {
         <div className="space-y-5 border-t border-fog bg-mist/60 p-5">
           {/* Quantity + pricing */}
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <div className="text-xs font-medium uppercase tracking-wide text-slate">Patient plan quantity</div>
-              <div className="mt-1.5 flex items-center gap-3">
-                <QuantityStepper value={selection.quantity} onChange={(v) => setQuantity(service.id, v)} suffix="sessions" min={1} />
-                {selection.quantity !== service.protocol.standardQuantity && (
-                  <span className="text-xs text-slate">Standard: {service.protocol.standardQuantity}</span>
-                )}
+            {!service.hideSessionQuantity && (
+              <div>
+                <div className="text-xs font-medium uppercase tracking-wide text-slate">Patient plan quantity</div>
+                <div className="mt-1.5 flex items-center gap-3">
+                  <QuantityStepper value={selection.quantity} onChange={(v) => setQuantity(service.id, v)} suffix="sessions" min={1} />
+                  {selection.quantity !== service.protocol.standardQuantity && (
+                    <span className="text-xs text-slate">Standard: {service.protocol.standardQuantity}</span>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
             {service.hasSeparatePricingQuantity && (
               <div>
                 <div className="text-xs font-medium uppercase tracking-wide text-slate">{service.pricingQuantityLabel ?? 'Units'}</div>

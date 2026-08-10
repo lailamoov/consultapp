@@ -154,6 +154,12 @@ export interface Service {
    *  (e.g. Botox: sessions are visits, but price is driven by units injected). */
   hasSeparatePricingQuantity?: boolean;
   pricingQuantityLabel?: string;
+  /** True for services where a session-quantity control doesn't apply —
+   *  effectively always exactly one visit at a time (e.g. filler: one
+   *  treatment session, syringe count is the only meaningful quantity).
+   *  Hides the "Patient plan quantity" (sessions) stepper in the UI;
+   *  the session quantity itself stays fixed at 1 for scheduling/pricing. */
+  hideSessionQuantity?: boolean;
 }
 
 // ---------------------------------------------------------------------------
