@@ -49,6 +49,14 @@ export function CalendarView() {
 
   const daySessions = selectedDay ? schedule.filter((s) => s.date === selectedDay) : [];
 
+  function reopenEditorFor(sessionId: string) {
+    const session = schedule.find((s) => s.id === sessionId);
+    if (!session) return;
+    setSelectedDay(session.date);
+    setEditingSessionId(session.id);
+    setDraftDate(session.date);
+  }
+
   if (serviceIds.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-fog p-10 text-center text-slate">
@@ -156,7 +164,7 @@ export function CalendarView() {
       )}
 
       <p className="text-xs italic text-slate">{disclaimers.timingEngine}</p>
-      <ConflictModal />
+      <ConflictModal onChooseAnotherDate={reopenEditorFor} />
     </div>
   );
 }

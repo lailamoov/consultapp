@@ -4,7 +4,7 @@ import { useConsultationStore, servicesById } from '../../state/consultationStor
 import { disclaimers } from '../../data/disclaimers';
 import { formatDateLong, fromISODate } from '../../utils/date';
 
-export function ConflictModal() {
+export function ConflictModal({ onChooseAnotherDate }: { onChooseAnotherDate?: (sessionId: string) => void }) {
   const activeConflicts = useConsultationStore((s) => s.activeConflicts);
   const schedule = useConsultationStore((s) => s.schedule);
   const moveSessionDate = useConsultationStore((s) => s.moveSessionDate);
@@ -30,6 +30,12 @@ export function ConflictModal() {
 
   function close() {
     useConsultationStore.setState({ activeConflicts: [] });
+  }
+
+  function handleChooseAnother() {
+    const sessionId = session!.id;
+    close();
+    onChooseAnotherDate?.(sessionId);
   }
 
   function handleMoveToEligible() {
@@ -91,7 +97,7 @@ export function ConflictModal() {
                 Move to next eligible date ({formatDateLong(fromISODate(earliestEligible))})
               </button>
             )}
-            <button type="button" onClick={close} className="rounded-full border border-fog px-4 py-2.5 text-sm font-medium text-ink/70">
+            <button type="button" onClick={handleChooseAnother} className="rounded-full border border-fog px-4 py-2.5 text-sm font-medium text-ink/70">
               Choose another date
             </button>
             <button type="button" onClick={() => setShowOverrideForm(true)} className="rounded-full border border-[#D14A3C]/40 px-4 py-2.5 text-sm font-medium text-[#D14A3C]">

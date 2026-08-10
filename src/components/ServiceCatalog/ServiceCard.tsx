@@ -81,7 +81,7 @@ export function ServiceCard({ service }: { service: Service }) {
             <div>
               <div className="text-xs font-medium uppercase tracking-wide text-slate">Patient plan quantity</div>
               <div className="mt-1.5 flex items-center gap-3">
-                <QuantityStepper value={selection.quantity} onChange={(v) => setQuantity(service.id, v)} suffix="sessions" />
+                <QuantityStepper value={selection.quantity} onChange={(v) => setQuantity(service.id, v)} suffix="sessions" min={1} />
                 {selection.quantity !== service.protocol.standardQuantity && (
                   <span className="text-xs text-slate">Standard: {service.protocol.standardQuantity}</span>
                 )}

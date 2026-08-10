@@ -10,11 +10,28 @@ import type { Service } from '../types';
 //
 // PRICING NOTES ON SOURCE FORMAT:
 // The source sheet uses "$X/Y" to mean "$X per individual treatment / $Y for
-// the standard package." Single un-slashed dollar figures are used
-// consistently throughout the source document to mean a flat per-session (or
-// per-visit) price — that convention is applied here too. Where the source
-// said "Packages" with no number, or gave a range ("$250-300") or "Varies",
-// no number is invented — see PriceType docs in ../types.
+// the standard package" (e.g. Microneedling, Vampire Facial, RF Clear,
+// PRF/PRP Injections) — modeled here as priceType: 'package' with an explicit
+// packages[] tier at the source's package quantity/price.
+//
+// A handful of services (RF Microneedling, PRP Hair Restoration) give only a
+// single un-slashed per-session figure alongside a defined multi-session
+// standard course (e.g. "$1,000" + "3 sessions, 1-2 weeks apart"). Per
+// clinic confirmation, that defined course total IS the package for this
+// service — modeled the same way (priceType: 'package', with a packages[]
+// tier at the standard quantity) so it displays as "3-session package"
+// rather than ad-hoc "individual pricing" math, even though the per-session
+// rate and the package-divided rate happen to be equal (no extra discount is
+// implied — confirm with MOOV if one should apply).
+//
+// Single un-slashed figures on services with NO defined multi-session course
+// (i.e. `isMaintenance: true`, one visit at a time — Dermaplaning, Chemical
+// Peel, HydraFacial, etc.) remain priceType: 'fixed'/'startingAt'/'range' —
+// a flat per-visit price, not a package.
+//
+// Where the source said "Packages" with no number, or gave a range
+// ("$250-300") or "Varies", no number is invented — see PriceType docs in
+// ../types.
 //
 // PATIENT BENEFIT COPY ("standardBenefit"):
 // No prewritten patient-education copy was supplied with the source data.
@@ -212,7 +229,12 @@ export const services: Service[] = [
     name: 'PRP Hair Restoration',
     availability: 'all',
     timingKey: null,
-    pricing: { priceType: 'fixed', individualPrice: 3000, sourceLabel: '$3,000/session' },
+    pricing: {
+      priceType: 'package',
+      individualPrice: 3000,
+      packages: [{ quantity: 3, price: 9000, label: '3-session package' }],
+      sourceLabel: '$3,000/session (3-session standard package)',
+    },
     protocol: { standardQuantity: 3, frequencyLabel: '3 sessions, 1 month apart', sessionIntervalDays: 30, isMaintenance: false },
     standardBenefit:
       'Uses the patient’s own platelet-rich plasma, delivered to the scalp, to support the body’s natural hair growth cycle over a series of sessions.',
@@ -273,7 +295,12 @@ export const services: Service[] = [
     name: 'RF Microneedling (Exion)',
     availability: 'all',
     timingKey: 'rfMicroneedling',
-    pricing: { priceType: 'fixed', individualPrice: 1000, sourceLabel: '$1,000/session' },
+    pricing: {
+      priceType: 'package',
+      individualPrice: 1000,
+      packages: [{ quantity: 3, price: 3000, label: '3-session package' }],
+      sourceLabel: '$1,000/session (3-session standard package)',
+    },
     protocol: {
       standardQuantity: 3,
       frequencyLabel: '3 sessions, 1–2 weeks apart',
