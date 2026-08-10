@@ -1,13 +1,19 @@
 import { useMemo } from 'react';
 import { useConsultationStore, servicesById } from '../../state/consultationStore';
 import { getRelationshipInfo } from '../../engine/timing';
+import { isAestheticService } from '../../data/services';
 import { StatusPill } from '../common/StatusPill';
 import { disclaimers } from '../../data/disclaimers';
 import { ShieldCheck } from 'lucide-react';
 
 export function CompatibilityMatrix() {
   const selectedServices = useConsultationStore((s) => s.selectedServices);
-  const serviceIds = Object.keys(selectedServices);
+  // Only aesthetic services are subject to the timing guide — wellness/lab
+  // services can be scheduled alongside anything and never appear here.
+  const serviceIds = Object.keys(selectedServices).filter((id) => {
+    const service = servicesById[id];
+    return service && isAestheticService(service);
+  });
 
   const pairs = useMemo(() => {
     const result: ReturnType<typeof getRelationshipInfo>[] = [];
@@ -19,7 +25,7 @@ export function CompatibilityMatrix() {
       }
     }
     return result;
-  }, [serviceIds]);
+  }, [serviceIds.join(',')]);
 
   if (pairs.length === 0) return null;
 

@@ -1,4 +1,5 @@
 import type { Service } from '../types';
+import { getCategoryById } from './categories';
 
 // =============================================================================
 // MOOV Health Service Catalog
@@ -666,4 +667,10 @@ export const services: Service[] = [
 
 export function getServiceById(id: string): Service | undefined {
   return services.find((s) => s.id === id);
+}
+
+/** Only aesthetic-category services participate in the timing/compatibility
+ *  engine — see categories.ts. */
+export function isAestheticService(service: Service): boolean {
+  return getCategoryById(service.categoryId)?.isAesthetic ?? false;
 }

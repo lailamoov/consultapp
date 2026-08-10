@@ -28,6 +28,12 @@ export interface ServiceCategory {
   name: string;
   sortOrder: number;
   description?: string;
+  /** Whether services in this category are topical/procedural aesthetic
+   *  treatments covered by the MOOV Aesthetic Procedure Timing Guide.
+   *  Non-aesthetic categories (wellness infusions, lab testing, consultation)
+   *  are never subject to timing/compatibility checks — they can be
+   *  scheduled alongside anything, aesthetic or not. */
+  isAesthetic: boolean;
 }
 
 // ---------------------------------------------------------------------------

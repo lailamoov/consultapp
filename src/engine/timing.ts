@@ -1,6 +1,7 @@
 import type { Service, TimingProcedureKey, TimingRelationship, TimingRule, WaitSpec, CombinationProtocol } from '../types';
 import { timingRules } from '../data/timingRules';
 import { combinationProtocols } from '../data/combinationProtocols';
+import { isAestheticService } from '../data/services';
 import { addDays, diffInDays, isSameDay } from '../utils/date';
 
 /** Directional lookup: if `from` is done, what must elapse before `to`? */
@@ -33,6 +34,19 @@ function describeWait(wait: WaitSpec): string {
  */
 export function getRelationshipInfo(serviceA: Service, serviceB: Service): TimingRelationship {
   const base = { serviceAId: serviceA.id, serviceBId: serviceB.id };
+
+  // Only aesthetic-category services are covered by the MOOV Aesthetic
+  // Procedure Timing Guide. Non-aesthetic services (wellness infusions, labs,
+  // consultation) can be scheduled alongside anything with no restriction —
+  // callers should not even present these pairs (see CompatibilityMatrix),
+  // but this guard keeps the engine itself correct regardless of caller.
+  if (!isAestheticService(serviceA) || !isAestheticService(serviceB)) {
+    return {
+      ...base,
+      status: 'compatible-with-spacing',
+      summary: 'At least one of these is a non-aesthetic wellness/lab service and is not subject to the aesthetic timing guide — it can be scheduled alongside any other treatment.',
+    };
+  }
 
   if (!serviceA.timingKey || !serviceB.timingKey) {
     return {
@@ -107,6 +121,13 @@ export interface ScheduledPairEvaluation {
  * scheduling algorithm and the calendar's live conflict checker.
  */
 export function evaluateScheduledPair(serviceA: Service, dateA: Date, serviceB: Service, dateB: Date): ScheduledPairEvaluation {
+  if (!isAestheticService(serviceA) || !isAestheticService(serviceB)) {
+    return {
+      status: 'compatible-with-spacing',
+      message: `${serviceA.name} and ${serviceB.name}: at least one is a non-aesthetic wellness/lab service, not subject to timing restrictions.`,
+    };
+  }
+
   if (!serviceA.timingKey || !serviceB.timingKey) {
     return {
       status: 'provider-review-required',
