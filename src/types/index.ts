@@ -166,6 +166,10 @@ export interface Service {
    *  Hides the "Patient plan quantity" (sessions) stepper in the UI;
    *  the session quantity itself stays fixed at 1 for scheduling/pricing. */
   hideSessionQuantity?: boolean;
+  /** True for services with a fixed, non-negotiable price (e.g. consultations)
+   *  where staff never enter a custom/approved price — hides that override
+   *  control entirely rather than just leaving it unused. */
+  disableCustomPrice?: boolean;
 }
 
 // ---------------------------------------------------------------------------

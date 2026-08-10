@@ -663,6 +663,7 @@ export const services: Service[] = [
     availability: 'all',
     timingKey: null,
     hideSessionQuantity: true,
+    disableCustomPrice: true,
     pricing: { priceType: 'fixed', individualPrice: 100, sourceLabel: '$100' },
     protocol: {
       standardQuantity: 1,
@@ -680,6 +681,7 @@ export const services: Service[] = [
     availability: 'all',
     timingKey: null,
     hideSessionQuantity: true,
+    disableCustomPrice: true,
     pricing: { priceType: 'fixed', individualPrice: 200, sourceLabel: '$200' },
     protocol: {
       standardQuantity: 1,
@@ -697,6 +699,7 @@ export const services: Service[] = [
     availability: 'all',
     timingKey: null,
     hideSessionQuantity: true,
+    disableCustomPrice: true,
     pricing: { priceType: 'fixed', individualPrice: 100, sourceLabel: '$100' },
     protocol: {
       standardQuantity: 1,
@@ -714,6 +717,7 @@ export const services: Service[] = [
     availability: 'all',
     timingKey: null,
     hideSessionQuantity: true,
+    disableCustomPrice: true,
     pricing: { priceType: 'fixed', individualPrice: 100, sourceLabel: '$100' },
     protocol: {
       standardQuantity: 1,
@@ -731,6 +735,7 @@ export const services: Service[] = [
     availability: 'all',
     timingKey: null,
     hideSessionQuantity: true,
+    disableCustomPrice: true,
     pricing: { priceType: 'complementary', individualPrice: 0, sourceLabel: 'Complementary' },
     protocol: {
       standardQuantity: 1,
@@ -748,6 +753,7 @@ export const services: Service[] = [
     availability: 'all',
     timingKey: null,
     hideSessionQuantity: true,
+    disableCustomPrice: true,
     pricing: { priceType: 'fixed', individualPrice: 199, sourceLabel: '$199' },
     protocol: {
       standardQuantity: 1,

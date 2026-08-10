@@ -154,7 +154,7 @@ export function ServiceCard({ service }: { service: Service }) {
             </div>
           )}
 
-          {!pricing.needsConfirmation && (
+          {!pricing.needsConfirmation && !service.disableCustomPrice && (
             <details className="group">
               <summary className="cursor-pointer text-sm font-medium text-navy underline-offset-2 hover:underline">
                 Enter a custom / approved price instead
