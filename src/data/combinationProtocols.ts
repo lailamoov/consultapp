@@ -31,7 +31,7 @@ export const combinationProtocols: CombinationProtocol[] = [
     label: 'Chemical Peel + Microneedling',
     sequence: ['chemicalPeel', 'microneedling'],
     sameSession: false,
-    notes: 'Chemical Peel first to exfoliate top layers. 4-6 weeks later, begin Microneedling to boost collagen in deeper layers.',
+    notes: 'Chemical Peel first to exfoliate top layers. 2 weeks later, begin Microneedling to boost collagen in deeper layers.',
   },
   {
     id: 'hydrafacial-dermaplaning',
@@ -39,12 +39,5 @@ export const combinationProtocols: CombinationProtocol[] = [
     sequence: ['dermaplaning', 'hydrafacial'],
     sameSession: true,
     notes: '(Highly recommended combination) Dermaplaning immediately before Hydrafacial — same session.',
-  },
-  {
-    id: 'hydrafacial-botox-filler',
-    label: 'Hydrafacial + Botox/Filler',
-    sequence: ['hydrafacial', 'botox'],
-    sameSession: true,
-    notes: 'Hydrafacial with RegenGF + Red LED lights enhances injectable results. Applies to Botox or Filler performed same session as Hydrafacial.',
   },
 ];
