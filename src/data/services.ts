@@ -764,6 +764,23 @@ export const services: Service[] = [
     },
     standardBenefit: 'A personalized evaluation of your health history and goals to determine which peptide therapy, if any, is right for you.',
   },
+  {
+    id: 'weight-loss-medical-exam',
+    categoryId: 'consultation',
+    name: 'Weight Loss Medical Exam',
+    availability: 'all',
+    timingKey: null,
+    hideSessionQuantity: true,
+    disableCustomPrice: true,
+    pricing: { priceType: 'fixed', individualPrice: 50, sourceLabel: '$50' },
+    protocol: {
+      standardQuantity: 1,
+      frequencyLabel: 'As needed',
+      sessionIntervalDays: null,
+      isMaintenance: false,
+    },
+    standardBenefit: 'A medical exam to determine candidacy for weight loss medication such as Phentermine, Semaglutide, or Tirzepatide.',
+  },
 ];
 
 export function getServiceById(id: string): Service | undefined {
