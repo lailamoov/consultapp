@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'Case';
+  src: url('/brand/fonts/Case-Light.otf') format('opentype');
+  font-weight: 300;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Case';
+  src: url('/brand/fonts/Case-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Case';
+  src: url('/brand/fonts/Case-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Case';
+  src: url('/brand/fonts/Case-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-display: swap;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  @apply font-body text-ink bg-mist antialiased;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Larger, calmer touch targets everywhere by default — this app is designed
+   for tablet use in a treatment room, not desktop-density data entry. */
+button,
+[role='button'],
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: theme('colors.fog');
+  border-radius: 999px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@layer utilities {
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
