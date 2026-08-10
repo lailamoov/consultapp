@@ -59,24 +59,33 @@ export function computeServicePricing(service: Service, selection: SelectedServi
     }
 
     case 'package': {
-      const individualPrice = pricing.individualPrice ?? 0;
       const matchedPackage = pricing.packages?.find((p) => p.quantity === quantity);
       if (matchedPackage) {
         return {
           method: 'package',
           subtotal: matchedPackage.price,
-          unitPrice: individualPrice,
+          unitPrice: pricing.individualPrice,
           matchedPackageLabel: matchedPackage.label ?? `${matchedPackage.quantity}-session package`,
           needsConfirmation: false,
-          explanation: `Matches the standard ${matchedPackage.quantity}-session package price.`,
+          explanation: matchedPackage.notes
+            ? `Matches the standard ${matchedPackage.quantity}-session package price. ${matchedPackage.notes}`
+            : `Matches the standard ${matchedPackage.quantity}-session package price.`,
+        };
+      }
+      if (pricing.individualPrice === undefined) {
+        return {
+          method: 'unresolved',
+          subtotal: 0,
+          needsConfirmation: true,
+          explanation: 'This service is not sold as individual sessions — only the defined package quantity. Provider review required to price any other quantity.',
         };
       }
       return {
         method: 'individual',
-        subtotal: individualPrice * quantity,
-        unitPrice: individualPrice,
+        subtotal: pricing.individualPrice * quantity,
+        unitPrice: pricing.individualPrice,
         needsConfirmation: false,
-        explanation: `${quantity} session${quantity === 1 ? '' : 's'} × $${individualPrice} (no package defined for this quantity).`,
+        explanation: `${quantity} session${quantity === 1 ? '' : 's'} × $${pricing.individualPrice} (no package defined for this quantity).`,
       };
     }
 

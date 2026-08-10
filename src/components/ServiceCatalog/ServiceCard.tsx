@@ -11,8 +11,13 @@ function priceTeaser(service: Service): string {
   switch (p.priceType) {
     case 'fixed':
       return `${formatMoney(p.individualPrice ?? 0)} / session`;
-    case 'package':
-      return `${formatMoney(p.individualPrice ?? 0)} / session`;
+    case 'package': {
+      if (p.individualPrice === undefined) {
+        const firstPackage = p.packages?.[0];
+        return firstPackage ? `${formatMoney(firstPackage.price)} (${firstPackage.label ?? `${firstPackage.quantity}-session package`})` : 'Package pricing only';
+      }
+      return `${formatMoney(p.individualPrice)} / session`;
+    }
     case 'perUnit':
       return `${formatMoney(p.individualPrice ?? 0)} / ${p.unitLabel}`;
     case 'startingAt':
@@ -96,7 +101,12 @@ export function ServiceCard({ service }: { service: Service }) {
                     onChange={(v) => setPricingQuantity(service.id, v)}
                     suffix={service.pricingQuantityLabel}
                     max={500}
+                    min={service.pricing.minUnits ?? 0}
+                    clearable
                   />
+                  {service.pricing.minUnits && (
+                    <div className="mt-1 text-xs text-slate">Minimum {service.pricing.minUnits} {service.pricingQuantityLabel}</div>
+                  )}
                 </div>
               </div>
             )}
@@ -203,6 +213,7 @@ export function ServiceCard({ service }: { service: Service }) {
                   >
                     <div className="font-medium text-ink">{pkg.label ?? `${pkg.quantity} sessions`}</div>
                     <div className="text-slate">{formatMoney(pkg.price)}</div>
+                    {pkg.notes && <div className="mt-0.5 max-w-[14rem] text-[11px] text-[#0B6E5F]">{pkg.notes}</div>}
                   </button>
                 ))}
               </div>

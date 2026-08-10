@@ -3,35 +3,40 @@ import type { Service } from '../types';
 // =============================================================================
 // MOOV Health Service Catalog
 // =============================================================================
-// Source of truth for pricing, protocol, and quantity: the supplied
-// Anti-Aging Treatment Plan reference (RenewMe Medspa template, being
-// adapted for MOOV Health branding). Source of truth for timing/compatibility
-// mapping: the MOOV Aesthetic Procedure Timing Guide (see timingRules.ts).
+// Source of truth for pricing, protocol, and quantity: "Anti-Aging Treatment
+// Plan (Packages)" — the MOOV/RenewMe reference with explicit separate
+// "Price (Individual)" and "Price (Package)" columns per service. This
+// superseded an earlier reference that only had a single ambiguous price
+// column; where the two disagreed, this sheet wins. Source of truth for
+// timing/compatibility mapping: the MOOV Aesthetic Procedure Timing Guide
+// (see timingRules.ts).
 //
 // PRICING NOTES ON SOURCE FORMAT:
-// The source sheet uses "$X/Y" to mean "$X per individual treatment / $Y for
-// the standard package" (e.g. Microneedling, Vampire Facial, RF Clear,
-// PRF/PRP Injections) — modeled here as priceType: 'package' with an explicit
-// packages[] tier at the source's package quantity/price.
-//
-// A handful of services (RF Microneedling, PRP Hair Restoration) give only a
-// single un-slashed per-session figure alongside a defined multi-session
-// standard course (e.g. "$1,000" + "3 sessions, 1-2 weeks apart"). Per
-// clinic confirmation, that defined course total IS the package for this
-// service — modeled the same way (priceType: 'package', with a packages[]
-// tier at the standard quantity) so it displays as "3-session package"
-// rather than ad-hoc "individual pricing" math, even though the per-session
-// rate and the package-divided rate happen to be equal (no extra discount is
-// implied — confirm with MOOV if one should apply).
-//
-// Single un-slashed figures on services with NO defined multi-session course
-// (i.e. `isMaintenance: true`, one visit at a time — Dermaplaning, Chemical
-// Peel, HydraFacial, etc.) remain priceType: 'fixed'/'startingAt'/'range' —
-// a flat per-visit price, not a package.
-//
-// Where the source said "Packages" with no number, or gave a range
-// ("$250-300") or "Varies", no number is invented — see PriceType docs in
-// ../types.
+// - "Price (Individual)" → `pricing.individualPrice` (per session/unit).
+// - "Price (Package)" → `pricing.packages[]`. Percentage- or perk-based deals
+//   ("buy 4 for 15% off", "buy 2, 3rd session half off") are converted to a
+//   flat total at the stated quantity using the individual rate as the base
+//   (e.g. "buy 4 for 15% off" on a $300 service = 4 × $300 × 0.85 = $1,020) —
+//   the resulting dollar amount is arithmetic on the source's own numbers,
+//   never an invented discount.
+// - A few services are explicitly NOT sold individually at all (e.g. PRP
+//   Hair Restoration — "Not allowed to buy individual sessions"). These have
+//   `individualPrice` intentionally omitted; the pricing engine requires a
+//   provider-entered price for any quantity that doesn't match a defined
+//   package. See PriceType docs in ../types.
+// - Where a package rule is documented but the individual rate is "Varies"
+//   with no anchor number (Vitamin Therapy), the deal is recorded in
+//   `protocol.protocolNotes` rather than computed as a packages[] tier — no
+//   number is invented.
+// - Kybella has no package pricing at all, but does have a stated 2-vial
+//   minimum — modeled via `pricing.minUnits`, enforced as the units
+//   stepper's floor once the provider starts entering units.
+// - NAD+ Therapy is priced as three distinct tiers by treatment goal
+//   (Anti-Aging / Mind & Body / Recovery), not one variable-priced service —
+//   modeled as three separate catalog entries. The source lists one package
+//   rule ("buy 2, 3rd half off, or buy 3 get 1 free") against NAD+ Therapy
+//   generally; it's applied here identically to each of the three variants
+//   at that variant's own rate — confirm with MOOV if that's not the intent.
 //
 // PATIENT BENEFIT COPY ("standardBenefit"):
 // No prewritten patient-education copy was supplied with the source data.
@@ -180,13 +185,20 @@ export const services: Service[] = [
     timingKey: 'kybella',
     hasSeparatePricingQuantity: true,
     pricingQuantityLabel: 'vials',
-    pricing: { priceType: 'perUnit', individualPrice: 500, unitLabel: 'vial', sourceLabel: '$500/vial' },
+    pricing: {
+      priceType: 'perUnit',
+      individualPrice: 500,
+      unitLabel: 'vial',
+      minUnits: 2,
+      sourceLabel: '$500/vial — no package pricing; minimum 2 vials',
+    },
     protocol: {
       standardQuantity: 3,
       frequencyLabel: '2–3 sessions, 4–6 weeks apart',
       sessionIntervalDays: 28,
       sessionIntervalDaysMax: 42,
       isMaintenance: false,
+      protocolNotes: 'No package pricing available for Kybella — priced per vial, with a 2-vial minimum per treatment.',
     },
     standardBenefit:
       'An injectable treatment that helps break down fat cells under the chin, intended to gradually reduce the appearance of submental fullness over a series of sessions.',
@@ -212,7 +224,7 @@ export const services: Service[] = [
     name: 'HydraFacial',
     availability: 'all',
     timingKey: 'hydrafacial',
-    pricing: { priceType: 'startingAt', individualPrice: 200, sourceLabel: '$200+' },
+    pricing: { priceType: 'range', rangeMin: 200, rangeMax: 325, sourceLabel: '$200–$325' },
     protocol: {
       standardQuantity: 1,
       frequencyLabel: 'Weekly to Monthly',
@@ -231,11 +243,17 @@ export const services: Service[] = [
     timingKey: null,
     pricing: {
       priceType: 'package',
-      individualPrice: 3000,
-      packages: [{ quantity: 3, price: 9000, label: '3-session package' }],
-      sourceLabel: '$3,000/session (3-session standard package)',
+      // Not sold as individual sessions — individualPrice intentionally omitted.
+      packages: [{ quantity: 3, price: 3000, label: '3-session package' }],
+      sourceLabel: 'Not available individually — $3,000 for the 3-session package',
     },
-    protocol: { standardQuantity: 3, frequencyLabel: '3 sessions, 1 month apart', sessionIntervalDays: 30, isMaintenance: false },
+    protocol: {
+      standardQuantity: 3,
+      frequencyLabel: '3 sessions, 1 month apart',
+      sessionIntervalDays: 30,
+      isMaintenance: false,
+      protocolNotes: 'Not sold as individual sessions — only the full 3-session package.',
+    },
     standardBenefit:
       'Uses the patient’s own platelet-rich plasma, delivered to the scalp, to support the body’s natural hair growth cycle over a series of sessions.',
   },
@@ -298,8 +316,15 @@ export const services: Service[] = [
     pricing: {
       priceType: 'package',
       individualPrice: 1000,
-      packages: [{ quantity: 3, price: 3000, label: '3-session package' }],
-      sourceLabel: '$1,000/session (3-session standard package)',
+      packages: [
+        {
+          quantity: 3,
+          price: 3000,
+          label: '3-session package',
+          notes: 'Includes 1 extra medium treatment area free with each session.',
+        },
+      ],
+      sourceLabel: '$1,000/session; $3,000 for 3-session package (+1 extra medium area free each session)',
     },
     protocol: {
       standardQuantity: 3,
@@ -372,7 +397,7 @@ export const services: Service[] = [
   {
     id: 'peptide-therapy',
     categoryId: 'regenerative-medicine',
-    name: 'Peptide Therapy',
+    name: 'Peptide Therapy (Sermorelin)',
     availability: 'all',
     timingKey: null,
     pricing: { priceType: 'fixed', individualPrice: 300, sourceLabel: '$300' },
@@ -397,13 +422,28 @@ export const services: Service[] = [
     standardBenefit:
       'A physician-supervised program intended to help restore hormone levels toward an optimal range based on lab testing and clinical evaluation.',
   },
+  // NAD+ Therapy is sold as three separate price tiers by treatment goal
+  // (not one service with a variable price) — modeled as three catalog
+  // entries so each can be selected and priced independently. Package deals
+  // ("buy 2, 3rd session half off" / "buy 3, get 1 free") are documented
+  // once per NAD+ variant in the source and applied here per-variant at
+  // that variant's individual rate — confirm with MOOV if these multi-buy
+  // deals were intended to apply identically across all three variants.
   {
-    id: 'nad-therapy',
+    id: 'nad-therapy-antiaging',
     categoryId: 'regenerative-medicine',
-    name: 'NAD+ Therapy',
+    name: 'NAD+ Therapy — Anti-Aging',
     availability: 'all',
     timingKey: null,
-    pricing: { priceType: 'startingAt', individualPrice: 450, sourceLabel: '$450+' },
+    pricing: {
+      priceType: 'package',
+      individualPrice: 450,
+      packages: [
+        { quantity: 3, price: 1125, label: 'Buy 2, 3rd Session Half Off' },
+        { quantity: 4, price: 1350, label: 'Buy 3, Get 1 Free' },
+      ],
+      sourceLabel: '$450/session; Buy 2 get 1 half off, or buy 3 get 1 free',
+    },
     protocol: {
       standardQuantity: 4,
       frequencyLabel: '3–4 sessions in month 1 (initial), then 1 session every 4–8 weeks (maintenance)',
@@ -415,12 +455,67 @@ export const services: Service[] = [
       'An infusion therapy intended to support cellular energy production and overall wellness, typically started with an initial series before moving to a maintenance schedule.',
   },
   {
+    id: 'nad-therapy-mindbody',
+    categoryId: 'regenerative-medicine',
+    name: 'NAD+ Therapy — Mind & Body',
+    availability: 'all',
+    timingKey: null,
+    pricing: {
+      priceType: 'package',
+      individualPrice: 800,
+      packages: [
+        { quantity: 3, price: 2000, label: 'Buy 2, 3rd Session Half Off' },
+        { quantity: 4, price: 2400, label: 'Buy 3, Get 1 Free' },
+      ],
+      sourceLabel: '$800/session; Buy 2 get 1 half off, or buy 3 get 1 free',
+    },
+    protocol: {
+      standardQuantity: 4,
+      frequencyLabel: '3–4 sessions in month 1 (initial), then 1 session every 4–8 weeks (maintenance)',
+      sessionIntervalDays: 7,
+      isMaintenance: false,
+      protocolNotes: 'Two-phase protocol: an initial loading month followed by ongoing maintenance sessions every 4–8 weeks.',
+    },
+    standardBenefit:
+      'An infusion therapy intended to support mental clarity, mood, and overall wellness, typically started with an initial series before moving to a maintenance schedule.',
+  },
+  {
+    id: 'nad-therapy-recovery',
+    categoryId: 'regenerative-medicine',
+    name: 'NAD+ Therapy — Recovery',
+    availability: 'all',
+    timingKey: null,
+    pricing: {
+      priceType: 'package',
+      individualPrice: 1500,
+      packages: [
+        { quantity: 3, price: 3750, label: 'Buy 2, 3rd Session Half Off' },
+        { quantity: 4, price: 4500, label: 'Buy 3, Get 1 Free' },
+      ],
+      sourceLabel: '$1,500/session; Buy 2 get 1 half off, or buy 3 get 1 free',
+    },
+    protocol: {
+      standardQuantity: 4,
+      frequencyLabel: '3–4 sessions in month 1 (initial), then 1 session every 4–8 weeks (maintenance)',
+      sessionIntervalDays: 7,
+      isMaintenance: false,
+      protocolNotes: 'Two-phase protocol: an initial loading month followed by ongoing maintenance sessions every 4–8 weeks.',
+    },
+    standardBenefit:
+      'An infusion therapy intended to support physical recovery and overall wellness, typically started with an initial series before moving to a maintenance schedule.',
+  },
+  {
     id: 'red-light-therapy-infrared',
     categoryId: 'regenerative-medicine',
     name: 'Red Light Therapy (Infrared)',
     availability: 'all',
     timingKey: null,
-    pricing: { priceType: 'fixed', individualPrice: 50, sourceLabel: '$50' },
+    pricing: {
+      priceType: 'package',
+      individualPrice: 50,
+      packages: [{ quantity: 5, price: 100, label: '5-session package' }],
+      sourceLabel: '$50/session; Buy 5 for $100',
+    },
     protocol: {
       standardQuantity: 1,
       frequencyLabel: 'Daily to Weekly',
@@ -448,7 +543,15 @@ export const services: Service[] = [
     name: 'IV Ozone Therapy',
     availability: 'all',
     timingKey: null,
-    pricing: { priceType: 'fixed', individualPrice: 300, sourceLabel: '$300' },
+    pricing: {
+      priceType: 'package',
+      individualPrice: 300,
+      packages: [
+        { quantity: 4, price: 1020, label: '4-session package (15% off)' },
+        { quantity: 7, price: 1680, label: '7-session package (20% off)' },
+      ],
+      sourceLabel: '$300/session; Buy 4 for 15% off, Buy 7 for 20% off',
+    },
     protocol: {
       standardQuantity: 1,
       frequencyLabel: 'Weekly to Monthly',
@@ -465,13 +568,14 @@ export const services: Service[] = [
     name: 'Vitamin Therapy',
     availability: 'all',
     timingKey: null,
-    pricing: { priceType: 'variable', sourceLabel: 'Varies' },
+    pricing: { priceType: 'variable', sourceLabel: 'Varies; package deal: Buy 4, get 1 free' },
     protocol: {
       standardQuantity: 1,
       frequencyLabel: 'Daily to Monthly',
       sessionIntervalDays: 30,
       isMaintenance: true,
-      protocolNotes: 'Cadence and formulation vary by patient goal.',
+      protocolNotes:
+        'Cadence and formulation vary by patient goal. Package: buy 4, get 1 free — exact package price depends on the formulation priced for this patient; provider must confirm.',
     },
     standardBenefit:
       'Targeted vitamin and micronutrient support intended to help address nutritional gaps identified through consultation or lab testing.',

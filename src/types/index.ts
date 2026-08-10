@@ -68,17 +68,28 @@ export interface PackageTier {
   /** total price for the package */
   price: number;
   label?: string;
+  /** Extra perk/condition attached to this package (e.g. a bonus treatment
+   *  area included free) — shown alongside the package, not folded into the label. */
+  notes?: string;
 }
 
 export interface ServicePricing {
   priceType: PriceType;
-  /** Base per-session (or per-unit) price, when a single anchor number exists */
+  /** Base per-session (or per-unit) price, when a single anchor number exists.
+   *  Absent (undefined) on 'package' services that are NOT sold individually
+   *  at all — the engine will require a matching package quantity or a
+   *  provider-entered custom price for any other quantity. */
   individualPrice?: number;
   /** For 'range' pricing */
   rangeMin?: number;
   rangeMax?: number;
   /** For 'perUnit' pricing (e.g. "unit", "vial") */
   unitLabel?: string;
+  /** For 'perUnit' pricing: minimum unit quantity per the source data (e.g.
+   *  Kybella: minimum 2 vials, no package pricing below that). Informational
+   *  + enforced as the stepper's floor once units are in use; not a hard
+   *  block on 0 (not-yet-decided) before the provider starts entering units. */
+  minUnits?: number;
   /** Defined package tiers, keyed by quantity */
   packages?: PackageTier[];
   /** Free-text as it appeared in source data, always shown alongside the parsed value */
