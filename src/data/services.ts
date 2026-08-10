@@ -111,7 +111,9 @@ export const services: Service[] = [
     name: 'Cheek Filler / Mid Face',
     availability: 'all',
     timingKey: 'filler',
-    pricing: { priceType: 'startingAt', individualPrice: 650, sourceLabel: '$650+' },
+    hasSeparatePricingQuantity: true,
+    pricingQuantityLabel: 'syringes',
+    pricing: { priceType: 'perUnit', individualPrice: 650, unitLabel: 'syringe', sourceLabel: '$650/syringe — no package pricing' },
     protocol: {
       standardQuantity: 1,
       frequencyLabel: 'Every 6–12 months',
@@ -128,7 +130,9 @@ export const services: Service[] = [
     name: 'Lip Filler',
     availability: 'all',
     timingKey: 'filler',
-    pricing: { priceType: 'startingAt', individualPrice: 650, sourceLabel: '$650+' },
+    hasSeparatePricingQuantity: true,
+    pricingQuantityLabel: 'syringes',
+    pricing: { priceType: 'perUnit', individualPrice: 650, unitLabel: 'syringe', sourceLabel: '$650/syringe — no package pricing' },
     protocol: {
       standardQuantity: 1,
       frequencyLabel: 'Every 6–12 months',
@@ -145,7 +149,9 @@ export const services: Service[] = [
     name: 'Lower Face Filler',
     availability: 'all',
     timingKey: 'filler',
-    pricing: { priceType: 'startingAt', individualPrice: 650, sourceLabel: '$650+' },
+    hasSeparatePricingQuantity: true,
+    pricingQuantityLabel: 'syringes',
+    pricing: { priceType: 'perUnit', individualPrice: 650, unitLabel: 'syringe', sourceLabel: '$650/syringe — no package pricing' },
     protocol: {
       standardQuantity: 1,
       frequencyLabel: 'Every 6–12 months',
