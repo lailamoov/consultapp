@@ -111,7 +111,7 @@ export function getRelationshipInfo(serviceA: Service, serviceB: Service): Timin
 export interface ScheduledPairEvaluation {
   status: TimingRelationship['status'];
   message: string;
-  /** Earliest date the LATER of the two treatments could move to, to resolve a conflict. */
+  /** Earliest date `serviceA` (the movable/being-placed session) could move to, to resolve a conflict with the fixed `serviceB` date. */
   earliestEligibleDate?: Date;
   notes?: string;
 }
@@ -145,72 +145,77 @@ export function evaluateScheduledPair(serviceA: Service, dateA: Date, serviceB: 
   const sameDay = isSameDay(dateA, dateB);
   const protocolEitherOrder = findCombinationProtocol(serviceA.timingKey, serviceB.timingKey) ?? findCombinationProtocol(serviceB.timingKey, serviceA.timingKey);
 
-  if (sameDay) {
-    if (protocolEitherOrder?.sameSession) {
-      return { status: 'approved-same-day', message: `Approved same-day combination: ${protocolEitherOrder.label}. ${protocolEitherOrder.notes}`, notes: protocolEitherOrder.notes };
-    }
-    // Same day but not an explicit pre-approved protocol: only OK if BOTH
-    // directional waits (where they exist) allow immediate/0-day.
-    const aToB = getDirectionalWait(serviceA.timingKey, serviceB.timingKey);
-    const bToA = getDirectionalWait(serviceB.timingKey, serviceA.timingKey);
-    if (!aToB && !bToA) {
-      return { status: 'provider-review-required', message: `No established timing guidance for same-day ${serviceA.name} + ${serviceB.name}. Provider review required.` };
-    }
-    const aOk = !aToB || aToB.wait.minDays === 0;
-    const bOk = !bToA || bToA.wait.minDays === 0;
-    if (aOk && bOk && (aToB || bToA)) {
-      return { status: 'compatible-with-spacing', message: `${serviceA.name} and ${serviceB.name} may be performed same day per MOOV timing guidance (not an official pre-approved combination protocol).` };
-    }
-    // Not safe to leave same-day. `serviceB`/`dateB` is always the fixed
-    // reference point in this function's callers (the already-scheduled
-    // session), and `serviceA`/`dateA` is the one being placed/moved — so
-    // the only date this pair can actually resolve to is serviceA moving
-    // LATER than serviceB. That makes wait(B -> A) the only applicable
-    // constraint; wait(A -> B) would require A to have happened first,
-    // which is impossible once B is already fixed in place. Using the
-    // wrong direction here previously caused dates to overshoot by using
-    // whichever direction's number happened to be larger/smaller by
-    // coincidence, not by which direction actually applies.
-    if (!bToA) {
-      return {
-        status: 'provider-review-required',
-        message: `No established timing guidance for ${serviceB.name} followed by ${serviceA.name}. Provider review required.`,
-      };
-    }
-    const eligible = addDays(dateA, bToA.wait.suggestedDays);
-    return {
-      status: 'conflict',
-      message: `Timing Conflict: ${serviceA.name} and ${serviceB.name} should not be scheduled on the same day. Based on MOOV timing protocol, the next eligible date is ${eligible.toDateString()}.`,
-      earliestEligibleDate: eligible,
-    };
+  if (sameDay && protocolEitherOrder?.sameSession) {
+    return { status: 'approved-same-day', message: `Approved same-day combination: ${protocolEitherOrder.label}. ${protocolEitherOrder.notes}`, notes: protocolEitherOrder.notes };
   }
 
-  // Different days — determine chronological order and check the correct direction.
-  const [firstService, firstDate, secondService, secondDate] = dateA <= dateB ? [serviceA, dateA, serviceB, dateB] : [serviceB, dateB, serviceA, dateA];
-  const rule = getDirectionalWait(firstService.timingKey!, secondService.timingKey!);
+  const aToB = getDirectionalWait(serviceA.timingKey, serviceB.timingKey);
+  const bToA = getDirectionalWait(serviceB.timingKey, serviceA.timingKey);
 
-  if (!rule) {
+  if (!aToB && !bToA) {
     return {
       status: 'provider-review-required',
-      message: `No established timing guidance for ${firstService.name} followed by ${secondService.name}. Provider review required.`,
+      message: `No established timing guidance for ${serviceA.name} and ${serviceB.name}. Provider review required.`,
     };
   }
 
-  const gapDays = diffInDays(firstDate, secondDate);
-  if (gapDays >= rule.wait.minDays) {
+  // `serviceB`/`dateB` is always the fixed reference point in every caller
+  // of this function (the already-scheduled session); `serviceA`/`dateA` is
+  // the one being placed or considered for a move, and this scheduler only
+  // ever moves it FORWARD. That gives exactly two valid orderings to check:
+  //   - dateA at/before dateB ("A then B"): valid only if a documented A->B
+  //     wait exists AND the current gap satisfies it.
+  //   - dateA at/after dateB ("B then A"): valid only if a documented B->A
+  //     wait exists AND the current gap satisfies it.
+  // Both conditions are checked (not else-if) so a true tie (same day) gets
+  // the benefit of either direction independently permitting a 0-day gap —
+  // there's no real "which happened first" for two same-day treatments.
+  // Once neither ordering is satisfied, the only fix is to move A to after
+  // B, using the B->A wait: A can't move earlier, so an unsatisfied A->B
+  // gap can never be repaired by nudging A later within that same ordering
+  // — moving A later only shrinks an "A before B" gap further. This is also
+  // why a single unified rule is used for same-day and cross-day alike:
+  // treating same-day as a separate case with its own (stricter,
+  // both-directions-required) rule previously meant that resolving a
+  // cross-day conflict could land A exactly on B's date (a 0-day B->A wait)
+  // and then have that same date rejected all over again by the stricter
+  // same-day rule, looping without ever converging.
+  if (dateA <= dateB && aToB) {
+    const gapDays = diffInDays(dateA, dateB);
+    if (gapDays >= aToB.wait.minDays) {
+      return {
+        status: 'compatible-with-spacing',
+        message: `${serviceA.name} → ${serviceB.name}: ${gapDays}-day gap satisfies the ${aToB.wait.sourceLabel} minimum.`,
+        notes: aToB.notes,
+      };
+    }
+  }
+  if (dateA >= dateB && bToA) {
+    const gapDays = diffInDays(dateB, dateA);
+    if (gapDays >= bToA.wait.minDays) {
+      return {
+        status: 'compatible-with-spacing',
+        message: `${serviceB.name} → ${serviceA.name}: ${gapDays}-day gap satisfies the ${bToA.wait.sourceLabel} minimum.`,
+        notes: bToA.notes,
+      };
+    }
+  }
+
+  if (!bToA) {
     return {
-      status: rule.wait.minDays === 0 ? 'compatible-with-spacing' : 'compatible-with-spacing',
-      message: `${firstService.name} → ${secondService.name}: ${gapDays}-day gap satisfies the ${rule.wait.sourceLabel} minimum.`,
-      notes: rule.notes,
+      status: 'provider-review-required',
+      message: `No established timing guidance for ${serviceB.name} followed by ${serviceA.name}. Provider review required.`,
     };
   }
 
-  const eligible = addDays(firstDate, rule.wait.suggestedDays);
+  const eligible = addDays(dateB, bToA.wait.suggestedDays);
   return {
     status: 'conflict',
-    message: `Timing Conflict: ${firstService.name} and ${secondService.name} should not be scheduled on these dates. Based on the MOOV timing protocol, the next eligible date is ${eligible.toDateString()}.`,
+    message: sameDay
+      ? `Timing Conflict: ${serviceA.name} and ${serviceB.name} should not be scheduled on the same day. Based on MOOV timing protocol, the next eligible date is ${eligible.toDateString()}.`
+      : `Timing Conflict: ${serviceA.name} and ${serviceB.name} should not be scheduled on these dates. Based on the MOOV timing protocol, the next eligible date is ${eligible.toDateString()}.`,
     earliestEligibleDate: eligible,
-    notes: rule.notes,
+    notes: bToA.notes,
   };
 }
 

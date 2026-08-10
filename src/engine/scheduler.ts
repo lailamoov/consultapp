@@ -83,12 +83,16 @@ export interface GeneratedSession extends ScheduledSession {
 /**
  * Generates the full proposed schedule: builds ideal per-service dates from
  * standard protocol (grouping pre-approved same-session combinations into
- * atomic placement units that always move together), then runs every new
- * unit through the compatibility engine against everything already placed,
- * pushing the WHOLE unit forward to the earliest eligible date whenever a
- * real conflict is found. Manual overrides are applied on top afterward by
- * the caller (see moveSession in the store) — this function always produces
- * the algorithm's own proposal.
+ * atomic placement units that always move together), then places units in
+ * ideal-date order, running every new unit through the compatibility engine
+ * against everything already placed and pushing the WHOLE unit forward to
+ * the earliest eligible date whenever a real conflict is found. Because
+ * already-placed sessions are immutable once placed and the candidate date
+ * only ever moves forward, resolving against every prior session (iterating
+ * until nothing moves) yields the earliest date consistent with all of
+ * those constraints simultaneously — not just the first one checked. Manual
+ * overrides are applied on top afterward by the caller (see moveSession in
+ * the store) — this function always produces the algorithm's own proposal.
  */
 export function generateSchedule(selectedServiceIds: string[], services: Record<string, Service>, selections: Record<string, SelectedServiceState>, planStartDateISO: string): GeneratedSession[] {
   const planStartDate = fromISODate(planStartDateISO);
@@ -114,7 +118,15 @@ export function generateSchedule(selectedServiceIds: string[], services: Record<
     const memberMessage: Record<string, string | undefined> = {};
     unit.members.forEach((m) => (memberStatus[m.serviceId] = 'ok'));
 
-    for (let iteration = 0; iteration < 25; iteration++) {
+    // Each already-placed session can force the candidate to "flip" from its
+    // tentative before-B ordering to after-B at most once (evaluateScheduledPair
+    // only ever pushes the candidate forward, never back), and once flipped it
+    // stays satisfied as the candidate keeps growing. So a full pass per
+    // placed session is always enough to reach a fixpoint — cap generously
+    // above that bound purely as a safety net, not because more should ever
+    // be needed.
+    const maxIterations = placed.length + 5;
+    for (let iteration = 0; iteration < maxIterations; iteration++) {
       let moved = false;
       for (const existing of placed) {
         const existingService = services[existing.serviceId];
@@ -126,8 +138,8 @@ export function generateSchedule(selectedServiceIds: string[], services: Record<
           if (existing.serviceId === member.serviceId) continue;
           const service = services[member.serviceId];
           const evalResult = evaluateScheduledPair(service, candidate, existingService, fromISODate(existing.date));
-          if (evalResult.status === 'conflict' && evalResult.earliestEligibleDate) {
-            candidate = evalResult.earliestEligibleDate > candidate ? evalResult.earliestEligibleDate : candidate;
+          if (evalResult.status === 'conflict' && evalResult.earliestEligibleDate && evalResult.earliestEligibleDate > candidate) {
+            candidate = evalResult.earliestEligibleDate;
             moved = true;
           } else if (evalResult.status === 'approved-same-day') {
             if (memberStatus[member.serviceId] === 'ok') memberStatus[member.serviceId] = 'approved-same-day';
