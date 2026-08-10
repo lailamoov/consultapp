@@ -161,8 +161,23 @@ export function evaluateScheduledPair(serviceA: Service, dateA: Date, serviceB: 
     if (aOk && bOk && (aToB || bToA)) {
       return { status: 'compatible-with-spacing', message: `${serviceA.name} and ${serviceB.name} may be performed same day per MOOV timing guidance (not an official pre-approved combination protocol).` };
     }
-    const conflictingWait = !aOk ? aToB! : bToA!;
-    const eligible = addDays(dateA, conflictingWait.wait.suggestedDays);
+    // Not safe to leave same-day. `serviceB`/`dateB` is always the fixed
+    // reference point in this function's callers (the already-scheduled
+    // session), and `serviceA`/`dateA` is the one being placed/moved — so
+    // the only date this pair can actually resolve to is serviceA moving
+    // LATER than serviceB. That makes wait(B -> A) the only applicable
+    // constraint; wait(A -> B) would require A to have happened first,
+    // which is impossible once B is already fixed in place. Using the
+    // wrong direction here previously caused dates to overshoot by using
+    // whichever direction's number happened to be larger/smaller by
+    // coincidence, not by which direction actually applies.
+    if (!bToA) {
+      return {
+        status: 'provider-review-required',
+        message: `No established timing guidance for ${serviceB.name} followed by ${serviceA.name}. Provider review required.`,
+      };
+    }
+    const eligible = addDays(dateA, bToA.wait.suggestedDays);
     return {
       status: 'conflict',
       message: `Timing Conflict: ${serviceA.name} and ${serviceB.name} should not be scheduled on the same day. Based on MOOV timing protocol, the next eligible date is ${eligible.toDateString()}.`,
