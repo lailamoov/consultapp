@@ -6,7 +6,6 @@ import { formatMoney } from '../utils/format';
 import { estimateFinancing } from '../engine/financing';
 import { careCreditConfig } from '../data/careCreditConfig';
 import { disclaimers } from '../data/disclaimers';
-import { getRelationshipInfo, findCombinationProtocol } from '../engine/timing';
 import { calendarColorCycle } from '../data/theme';
 
 Font.register({ family: 'Case', fonts: [{ src: '/brand/fonts/Case-Regular.otf', fontWeight: 400 }, { src: '/brand/fonts/Case-Medium.otf', fontWeight: 500 }, { src: '/brand/fonts/Case-Bold.otf', fontWeight: 700 }] });
@@ -79,25 +78,6 @@ export function PatientPlanPdf({
   for (const s of sortedSchedule) {
     const key = s.date.slice(0, 7);
     (monthsGrouped[key] ??= []).push(s);
-  }
-
-  // Relevant sequencing notes: only for pairs actually in the plan that have
-  // an approved combination or a documented notes field. No conflict / override
-  // / internal review language belongs in the patient-facing document.
-  const sequencingNotes: string[] = [];
-  for (let i = 0; i < lineItems.length; i++) {
-    for (let j = i + 1; j < lineItems.length; j++) {
-      const a = lineItems[i].service;
-      const b = lineItems[j].service;
-      if (!a.timingKey || !b.timingKey || a.timingKey === b.timingKey) continue;
-      const rel = getRelationshipInfo(a, b);
-      const protocol = findCombinationProtocol(a.timingKey, b.timingKey) ?? findCombinationProtocol(b.timingKey, a.timingKey);
-      if (protocol) {
-        sequencingNotes.push(`${a.name} + ${b.name}: ${protocol.notes}`);
-      } else if (rel.status === 'compatible-with-spacing' && rel.notes) {
-        sequencingNotes.push(`${a.name} + ${b.name}: ${rel.notes}`);
-      }
-    }
   }
 
   return (
@@ -181,17 +161,6 @@ export function PatientPlanPdf({
             })}
           </View>
         ))}
-
-        {sequencingNotes.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>Treatment Sequencing Notes</Text>
-            {sequencingNotes.map((note, i) => (
-              <Text key={i} style={[styles.benefitText, { marginBottom: 4 }]}>
-                • {note}
-              </Text>
-            ))}
-          </>
-        )}
 
         <View style={{ marginTop: 16, padding: 10, backgroundColor: PALE, borderRadius: 8 }}>
           <Text style={styles.disclaimer}>{disclaimers.timingEngine}</Text>
