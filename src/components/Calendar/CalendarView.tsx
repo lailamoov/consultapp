@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useConsultationStore, servicesById } from '../../state/consultationStore';
+import { isAestheticService } from '../../data/services';
 import { MonthGrid, type DaySessionDot } from './MonthGrid';
 import { ConflictModal } from './ConflictModal';
 import { StatusPill } from '../common/StatusPill';
@@ -21,6 +22,8 @@ function assignColors(serviceIds: string[]): Record<string, string> {
 export function CalendarView() {
   const planStartDate = useConsultationStore((s) => s.planStartDate);
   const setPlanStartDate = useConsultationStore((s) => s.setPlanStartDate);
+  const preferredStartServiceId = useConsultationStore((s) => s.preferredStartServiceId);
+  const setPreferredStartServiceId = useConsultationStore((s) => s.setPreferredStartServiceId);
   const schedule = useConsultationStore((s) => s.schedule);
   const selectedServices = useConsultationStore((s) => s.selectedServices);
   const moveSessionDate = useConsultationStore((s) => s.moveSessionDate);
@@ -30,6 +33,13 @@ export function CalendarView() {
 
   const serviceIds = Object.keys(selectedServices);
   const colorFor = useMemo(() => assignColors(serviceIds), [serviceIds]);
+  // Only aesthetic services participate in the timing engine, so only they
+  // can meaningfully be scheduled "first" — picking a wellness/lab/consult
+  // service wouldn't move anything.
+  const aestheticServiceIds = serviceIds.filter((id) => {
+    const service = servicesById[id];
+    return service && isAestheticService(service);
+  });
 
   const sessionsByDay = useMemo(() => {
     const map = new Map<string, DaySessionDot[]>();
@@ -68,7 +78,7 @@ export function CalendarView() {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-fog bg-white p-4">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <CalendarDays size={18} className="text-navy" />
           <label className="text-sm font-medium text-ink/70">Plan start date</label>
           <input
@@ -77,6 +87,23 @@ export function CalendarView() {
             onChange={(e) => setPlanStartDate(e.target.value)}
             className="rounded-lg border border-fog px-3 py-2 text-sm"
           />
+          {aestheticServiceIds.length > 1 && (
+            <>
+              <label className="ml-2 text-sm font-medium text-ink/70">Start with</label>
+              <select
+                value={preferredStartServiceId ?? ''}
+                onChange={(e) => setPreferredStartServiceId(e.target.value || null)}
+                className="rounded-lg border border-fog px-3 py-2 text-sm"
+              >
+                <option value="">No preference</option>
+                {aestheticServiceIds.map((id) => (
+                  <option key={id} value={id}>
+                    {servicesById[id]?.name}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-1.5">
           {serviceIds.map((id) => (

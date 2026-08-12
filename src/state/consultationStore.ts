@@ -13,6 +13,11 @@ interface ConsultationStore {
   locationId: string | null;
   selectedServices: Record<string, SelectedServiceState>;
   planStartDate: string;
+  /** Which selected aesthetic service, if any, the patient should start
+   *  with first — wins the tie-break for the plan start date over every
+   *  other service instead of the default alphabetical ordering, so the
+   *  rest of the schedule falls in line around it per the timing guide. */
+  preferredStartServiceId: string | null;
   schedule: GeneratedSession[];
   timingOverrides: TimingOverride[];
   financingTermMonths: 6 | 12 | 18 | null;
@@ -25,6 +30,7 @@ interface ConsultationStore {
   setCustomPrice: (serviceId: string, price: number | undefined, reason?: string) => void;
   setPersonalizedRecommendation: (serviceId: string, text: string) => void;
   setPlanStartDate: (iso: string) => void;
+  setPreferredStartServiceId: (serviceId: string | null) => void;
   regenerateSchedule: () => void;
   moveSessionDate: (sessionId: string, newDateISO: string) => void;
   resolveConflictsForSession: (sessionId: string) => void;
@@ -42,6 +48,7 @@ export const useConsultationStore = create<ConsultationStore>((set, get) => ({
   locationId: null,
   selectedServices: {},
   planStartDate: today,
+  preferredStartServiceId: null,
   schedule: [],
   timingOverrides: [],
   financingTermMonths: null,
@@ -54,7 +61,8 @@ export const useConsultationStore = create<ConsultationStore>((set, get) => ({
     if (!service) return;
     set((state) => {
       const next = { ...state.selectedServices };
-      if (next[serviceId]) {
+      const wasSelected = !!next[serviceId];
+      if (wasSelected) {
         delete next[serviceId];
       } else {
         next[serviceId] = {
@@ -65,7 +73,8 @@ export const useConsultationStore = create<ConsultationStore>((set, get) => ({
           subtotal: 0,
         };
       }
-      return { selectedServices: next };
+      const clearPreferredStart = wasSelected && state.preferredStartServiceId === serviceId;
+      return { selectedServices: next, ...(clearPreferredStart ? { preferredStartServiceId: null } : {}) };
     });
     get().regenerateSchedule();
   },
@@ -112,10 +121,15 @@ export const useConsultationStore = create<ConsultationStore>((set, get) => ({
     get().regenerateSchedule();
   },
 
+  setPreferredStartServiceId: (serviceId) => {
+    set({ preferredStartServiceId: serviceId });
+    get().regenerateSchedule();
+  },
+
   regenerateSchedule: () => {
     const state = get();
     const selectedIds = Object.keys(state.selectedServices);
-    const schedule = generateSchedule(selectedIds, servicesById, state.selectedServices, state.planStartDate);
+    const schedule = generateSchedule(selectedIds, servicesById, state.selectedServices, state.planStartDate, state.preferredStartServiceId);
     set({ schedule, activeConflicts: [] });
   },
 
@@ -157,6 +171,7 @@ export const useConsultationStore = create<ConsultationStore>((set, get) => ({
       locationId: null,
       selectedServices: {},
       planStartDate: today,
+      preferredStartServiceId: null,
       schedule: [],
       timingOverrides: [],
       financingTermMonths: null,

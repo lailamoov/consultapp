@@ -45,7 +45,13 @@ function buildGroups(selectedServiceIds: string[], services: Record<string, Serv
   return { groups, ungrouped };
 }
 
-function buildIdealUnits(selectedServiceIds: string[], services: Record<string, Service>, selections: Record<string, SelectedServiceState>, planStartDate: Date): PlacementUnit[] {
+function buildIdealUnits(
+  selectedServiceIds: string[],
+  services: Record<string, Service>,
+  selections: Record<string, SelectedServiceState>,
+  planStartDate: Date,
+  preferredStartServiceId?: string | null,
+): PlacementUnit[] {
   const { groups, ungrouped } = buildGroups(selectedServiceIds, services, selections);
   const units: PlacementUnit[] = [];
 
@@ -71,7 +77,24 @@ function buildIdealUnits(selectedServiceIds: string[], services: Record<string, 
     }
   }
 
-  units.sort((a, b) => a.idealDate.getTime() - b.idealDate.getTime() || a.members[0].serviceId.localeCompare(b.members[0].serviceId));
+  // Same ideal date (almost always true for every service's first session,
+  // since they all default to the plan start date) is otherwise broken by
+  // service ID alphabetically — an arbitrary tie-break the provider has no
+  // control over. When a preferred starting service is set, its unit(s) win
+  // every such tie instead, so it gets processed (and therefore placed)
+  // first; every other aesthetic service is then scheduled relative to IT
+  // via the normal conflict-resolution pass, rather than the reverse.
+  units.sort((a, b) => {
+    const dateDiff = a.idealDate.getTime() - b.idealDate.getTime();
+    if (dateDiff !== 0) return dateDiff;
+    if (preferredStartServiceId) {
+      const aPreferred = a.members.some((m) => m.serviceId === preferredStartServiceId);
+      const bPreferred = b.members.some((m) => m.serviceId === preferredStartServiceId);
+      if (aPreferred && !bPreferred) return -1;
+      if (bPreferred && !aPreferred) return 1;
+    }
+    return a.members[0].serviceId.localeCompare(b.members[0].serviceId);
+  });
   return units;
 }
 
@@ -93,10 +116,21 @@ export interface GeneratedSession extends ScheduledSession {
  * those constraints simultaneously — not just the first one checked. Manual
  * overrides are applied on top afterward by the caller (see moveSession in
  * the store) — this function always produces the algorithm's own proposal.
+ *
+ * `preferredStartServiceId`, when set, is processed first among same-date
+ * units so that service anchors the schedule (see buildIdealUnits) — every
+ * other aesthetic service then falls in line around it per the timing guide,
+ * instead of the tie-break being an arbitrary alphabetical accident.
  */
-export function generateSchedule(selectedServiceIds: string[], services: Record<string, Service>, selections: Record<string, SelectedServiceState>, planStartDateISO: string): GeneratedSession[] {
+export function generateSchedule(
+  selectedServiceIds: string[],
+  services: Record<string, Service>,
+  selections: Record<string, SelectedServiceState>,
+  planStartDateISO: string,
+  preferredStartServiceId?: string | null,
+): GeneratedSession[] {
   const planStartDate = fromISODate(planStartDateISO);
-  const units = buildIdealUnits(selectedServiceIds, services, selections, planStartDate);
+  const units = buildIdealUnits(selectedServiceIds, services, selections, planStartDate, preferredStartServiceId);
   const placed: GeneratedSession[] = [];
   const lastDateForService: Record<string, Date> = {};
 
