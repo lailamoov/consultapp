@@ -31,11 +31,16 @@ export function computeServicePricing(service: Service, selection: SelectedServi
   // A manually entered custom price always takes precedence when present —
   // this is the "authorized user enters an approved custom package price"
   // path, and also the only way range/variable/unavailable pricing resolves
-  // to a real number.
+  // to a real number. It replaces the per-session (or, for perUnit services,
+  // per-unit) price, not the whole-course total — it still scales with
+  // quantity like every other price type below, so a custom price entered
+  // once applies correctly whether the patient is booked for 1 session or 5.
   if (selection.customPrice !== undefined && selection.customPrice !== null) {
+    const customQuantity = pricing.priceType === 'perUnit' ? pricingQuantity : quantity;
     return {
       method: 'custom',
-      subtotal: selection.customPrice,
+      subtotal: selection.customPrice * customQuantity,
+      unitPrice: selection.customPrice,
       needsConfirmation: false,
       explanation: selection.customPriceReason
         ? `Custom price entered: ${selection.customPriceReason}`
